@@ -1,0 +1,27 @@
+node{
+    def mavenHome = tool name:"maven-3.6.3"
+    stage('checkoutCode'){
+        git credentialsId: '85b6f47a-30dd-467a-a4ce-4f9b19918d9f', url: 'https://github.com/poorna5950/maven-web-application.git'
+    }
+    stage('build')
+    {sh "${mavenHome}/bin/mvn clean package"}
+    stage("ExcecuteSonarQubeReport")
+	{
+	   sh "${mavenHome}/bin/mvn sonar:sonar" }
+	stage("UploadArtifactintoNexus")
+	{
+	   sh "${mavenHome}/bin/mvn deploy" }
+	stage('TomcatDeploy')
+	{
+	    sshagent(['d32b29ed-b538-499a-9178-4630cdcdd9a1']) {
+          sh "scp  -o StrictHostKeyChecking=no  target/maven-web-application.war  ec2-user@13.234.238.234:/opt/apache-tomcat-9.0.30/webapps/"
+        }
+	}
+	stage('sendEmailNotification'){
+	 emailext body: '''Build is successfully completed .
+     Thanks
+     Poorna
+     9620542792''', subject: 'Build Status', to: 'poorna5950@gmail.com'
+	}
+	
+}
